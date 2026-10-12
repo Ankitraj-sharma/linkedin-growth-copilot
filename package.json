@@ -11,7 +11,8 @@
     "bot:safe": "tsx src/cli/run-bot.ts --mode=safe",
     "bot:dry-run": "tsx src/cli/run-bot.ts --mode=dry-run",
     "test:ai": "tsx src/cli/test-ai.ts",
-    "db:verify": "tsx src/cli/verify-db.ts"
+    "db:verify": "tsx src/cli/verify-db.ts",
+    "login:chrome": "tsx src/cli/login-chrome.ts"
   },
   "keywords": [
     "linkedin",
