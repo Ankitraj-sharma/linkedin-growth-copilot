@@ -36,7 +36,7 @@ async function captureLoginFromChrome() {
   console.log('⏳ Waiting for active LinkedIn session...')
 
   let captured = false
-  const maxWaitMs = 120000 // 2 minutes
+  const maxWaitMs = 600000 // 10 minutes (plenty of time for credentials & 2FA)
   const startTime = Date.now()
 
   while (Date.now() - startTime < maxWaitMs) {
