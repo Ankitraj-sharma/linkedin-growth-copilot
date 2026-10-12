@@ -31,6 +31,16 @@ export default function LeadStudioPage() {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'discovered' | 'approved' | 'invite_sent'>('all')
   const [isGenerating, setIsGenerating] = useState<string | null>(null)
 
+  // Multi-User Profile State (Allows anyone using the site to customize their persona)
+  const [userProfile, setUserProfile] = useState({
+    fullName: 'Ankitraj Sharma',
+    currentRole: 'Full Stack Engineer (React, TypeScript & Node.js)',
+    targetRole: 'Senior Full Stack / SDE-2',
+    goal: 'referral' as 'networking' | 'referral' | 'recommendation' | 'mentorship',
+  })
+  const [showProfileSettings, setShowProfileSettings] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
   const [leads, setLeads] = useState<LeadCard[]>([
     {
       id: 'lead-1',
@@ -103,13 +113,14 @@ export default function LeadStudioPage() {
             headline: targetLead.headline,
             company: targetLead.company,
           },
-          goal: 'referral',
+          user: userProfile,
+          goal: userProfile.goal,
         }),
       })
       const data = await res.json()
       if (data.note) {
         setLeads((prev) =>
-          prev.map((l) => (l.id === leadId ? { ...l, note: data.note } : l))
+          prev.map((l) => (l.id === leadId ? { ...l, note: data.note, followup: data.followup || l.followup } : l))
         )
       }
     } catch (e) {
@@ -117,6 +128,13 @@ export default function LeadStudioPage() {
     } finally {
       setIsGenerating(null)
     }
+  }
+
+  const handleCopyAndOpen = (lead: LeadCard) => {
+    navigator.clipboard.writeText(lead.note)
+    setCopiedId(lead.id)
+    setTimeout(() => setCopiedId(null), 3000)
+    window.open(lead.profileUrl, '_blank')
   }
 
   const filteredLeads = leads.filter((lead) => {
@@ -134,17 +152,80 @@ export default function LeadStudioPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Lead Studio & AI Personalization</h1>
           <p className="text-sm text-slate-500">
-            Review targeted profiles and inspect Gemini-generated connection notes before the bot dispatches them.
+            Tailor high-impact connection notes for your target companies or teammates with instant AI regeneration.
           </p>
         </div>
 
         <div className="flex items-center space-x-2">
-          <div className="px-3.5 py-1.5 bg-sky-50 text-sky-700 rounded-xl text-xs font-semibold border border-sky-100 flex items-center space-x-1.5">
-            <Shield className="w-3.5 h-3.5 text-sky-600" />
-            <span>Human Review Gatekeeper</span>
-          </div>
+          <button
+            onClick={() => setShowProfileSettings(!showProfileSettings)}
+            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition-all"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+            <span>{showProfileSettings ? 'Close Profile Editor' : 'Customize My Persona'}</span>
+          </button>
         </div>
       </div>
+
+      {/* Multi-User Persona Customizer Drawer */}
+      {showProfileSettings && (
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-2xl border border-slate-700 shadow-lg space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-700">
+            <div>
+              <h3 className="text-sm font-bold text-white">Your Professional Persona</h3>
+              <p className="text-xs text-slate-400">
+                Anyone using this site can set their own target role & goals to generate hyper-personalized notes.
+              </p>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 bg-sky-500/20 text-sky-300 rounded border border-sky-400/30">
+              Multi-User Mode
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1">Your Full Name</label>
+              <input
+                type="text"
+                value={userProfile.fullName}
+                onChange={(e) => setUserProfile({ ...userProfile, fullName: e.target.value })}
+                className="w-full p-2.5 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-sky-400"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1">Your Current Role / Skills</label>
+              <input
+                type="text"
+                value={userProfile.currentRole}
+                onChange={(e) => setUserProfile({ ...userProfile, currentRole: e.target.value })}
+                className="w-full p-2.5 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-sky-400"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1">Target Role Seeking</label>
+              <input
+                type="text"
+                value={userProfile.targetRole}
+                onChange={(e) => setUserProfile({ ...userProfile, targetRole: e.target.value })}
+                className="w-full p-2.5 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-sky-400"
+              />
+            </div>
+            <div>
+              <label className="block text-slate-300 font-semibold mb-1">Outreach Goal</label>
+              <select
+                value={userProfile.goal}
+                onChange={(e) => setUserProfile({ ...userProfile, goal: e.target.value as any })}
+                className="w-full p-2.5 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-sky-400"
+              >
+                <option value="referral">Job Referral</option>
+                <option value="recommendation">Recommendation / Endorsement</option>
+                <option value="networking">Peer Networking</option>
+                <option value="mentorship">Mentorship</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
@@ -275,22 +356,32 @@ export default function LeadStudioPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-4 flex items-center justify-end space-x-2.5">
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2.5">
                 <button
                   onClick={() => handleReject(lead.id)}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center space-x-1.5"
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors flex items-center space-x-1.5"
                 >
                   <X className="w-3.5 h-3.5 text-slate-400" />
                   <span>Dismiss</span>
                 </button>
 
+                {/* Instant 1-Click Send for Anyone on Web */}
+                <button
+                  onClick={() => handleCopyAndOpen(lead)}
+                  className="px-3.5 py-1.5 text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl transition-all flex items-center space-x-1.5 shadow-sm"
+                  title="Copies this AI note to your clipboard and opens their LinkedIn profile"
+                >
+                  <Send className="w-3.5 h-3.5 text-sky-600" />
+                  <span>{copiedId === lead.id ? 'Copied! Opening Tab...' : 'Copy Note & Open Profile'}</span>
+                </button>
+
                 {lead.status === 'discovered' && (
                   <button
                     onClick={() => handleApprove(lead.id)}
-                    className="px-4 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-all flex items-center space-x-1.5"
+                    className="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-all flex items-center space-x-1.5"
                   >
                     <Check className="w-3.5 h-3.5" />
-                    <span>Approve for Bot Queue</span>
+                    <span>Approve for Bot</span>
                   </button>
                 )}
 
