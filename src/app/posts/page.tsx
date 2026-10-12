@@ -21,6 +21,22 @@ export default function PostStudioPage() {
   const [tone, setTone] = useState<'conversational' | 'authoritative' | 'inspiring' | 'contrarian'>('conversational')
   const [isGenerating, setIsGenerating] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [apiKey, setApiKey] = useState('')
+  const [showKeyInput, setShowKeyInput] = useState(false)
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('gemini_api_key')
+      if (saved) setApiKey(saved)
+    }
+  }, [])
+
+  const handleSaveKey = (key: string) => {
+    setApiKey(key)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('gemini_api_key', key)
+    }
+  }
 
   const [postContent, setPostContent] = useState(`Most software engineers spend 80% of their time chasing new frameworks.
 The top 1% spend 80% of their time mastering fundamentals.
@@ -44,7 +60,7 @@ What is one architectural rule you never compromise on?
       const res = await fetch('/api/generate-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, framework, tone }),
+        body: JSON.stringify({ topic, framework, tone, apiKey }),
       })
       const data = await res.json()
       if (data.content) {
@@ -72,7 +88,51 @@ What is one architectural rule you never compromise on?
             Generate high-engagement LinkedIn posts engineered for organic reach, comments, and visibility.
           </p>
         </div>
+
+        <button
+          onClick={() => setShowKeyInput(!showKeyInput)}
+          className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all w-fit"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+          <span>{apiKey ? '⚡ Gemini Key Connected' : '🔑 Custom Gemini Key (Optional)'}</span>
+        </button>
       </div>
+
+      {showKeyInput && (
+        <div className="bg-sky-50 border border-sky-200 p-4 rounded-2xl space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-sky-900">Custom Google Gemini API Key</span>
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sky-600 hover:underline font-semibold"
+            >
+              Get Free Key from Google AI Studio →
+            </a>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              placeholder="Paste AI Studio Key (AIzaSy...)"
+              value={apiKey}
+              onChange={(e) => handleSaveKey(e.target.value)}
+              className="flex-1 p-2 bg-white border border-sky-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-sky-500 text-xs"
+            />
+            {apiKey && (
+              <button
+                onClick={() => handleSaveKey('')}
+                className="px-3 py-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 rounded-xl font-semibold"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-sky-700">
+            Even without a key, LinkPilot AI uses our Smart Dynamic Engine to create customized posts for any topic.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Creator Controls */}

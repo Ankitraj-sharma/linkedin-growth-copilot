@@ -3,27 +3,15 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const apiKey = process.env.GEMINI_API_KEY || ''
+const envApiKey = process.env.GEMINI_API_KEY || ''
 const defaultModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
-
-let aiClient: GoogleGenAI | null = null
-
-export function getGeminiClient(): GoogleGenAI {
-  if (aiClient) return aiClient
-
-  if (!apiKey) {
-    console.warn('⚠️ [Gemini AI] GEMINI_API_KEY is not defined in .env. Falling back to mock templates if needed.')
-  }
-
-  aiClient = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-for-initialization' })
-  return aiClient
-}
 
 export interface GenerateTextOptions {
   model?: string
   temperature?: number
   systemInstruction?: string
   maxOutputTokens?: number
+  apiKey?: string
 }
 
 /**
@@ -33,14 +21,15 @@ export async function generateWithGemini(
   prompt: string,
   options?: GenerateTextOptions
 ): Promise<string> {
-  const client = getGeminiClient()
+  const activeKey = options?.apiKey || envApiKey || process.env.GEMINI_API_KEY || ''
   const modelName = options?.model || defaultModel
 
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is missing. Please set it in your .env file.')
+  if (!activeKey) {
+    throw new Error('GEMINI_API_KEY is missing.')
   }
 
   try {
+    const client = new GoogleGenAI({ apiKey: activeKey })
     const response = await client.models.generateContent({
       model: modelName,
       contents: prompt,
