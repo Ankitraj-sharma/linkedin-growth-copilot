@@ -24,6 +24,7 @@ export class SessionManager {
 
     const browser = await chromium.launch({
       headless,
+      channel: 'chrome', // Use real installed Google Chrome
       args: [
         '--disable-blink-features=AutomationControlled',
         '--no-sandbox',
