@@ -1,0 +1,21 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: "https://btuxqfkomiqbwzlgyfit.supabase.co",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXhxZmtvbWlxYnd6bGd5Zml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNDY1OTgsImV4cCI6MjEwNTcyMjU5OH0.CBu7W2KCUiLf0NDcTli51zvAFiKZKkWabmQDxG4jZAc",
+    SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXhxZmtvbWlxYnd6bGd5Zml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNDY1OTgsImV4cCI6MjEwNTcyMjU5OH0.CBu7W2KCUiLf0NDcTli51zvAFiKZKkWabmQDxG4jZAc",
+    LINKEDIN_LI_AT_COOKIE: "AQEDAVNXCBUBQ8wWAAABn9WCuXQAAAGhVaaBtU4APP863LGkGL3yzm2DktREcTAixIkvcZlM6ivOXiBvlMEMk6glEPzzfCkAPazgjb4WRjsMFfgovC4CcPLYpbdiI8VHeRf7-uAX1JxTO_8l69UTH06U",
+    MAX_DAILY_CONNECTIONS: "15",
+    MAX_DAILY_MESSAGES: "25",
+    MIN_DELAY_SECONDS: "45",
+    MAX_DELAY_SECONDS: "130",
+    TYPING_SPEED_MIN_MS: "50",
+    TYPING_SPEED_MAX_MS: "180",
+    WORKING_HOURS_START: "9",
+    WORKING_HOURS_END: "19",
+    TIMEZONE: "Asia/Kolkata",
+  },
+}
+
+module.exports = nextConfig
