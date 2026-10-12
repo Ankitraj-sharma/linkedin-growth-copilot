@@ -1,0 +1,51 @@
+{
+  "name": "linkedin-growth-copilot",
+  "version": "1.0.0",
+  "description": "AI-Powered LinkedIn Growth & Networking Copilot with Controlled Human Delays, Supabase Database, and Gemini-Generated Professional Outreach.",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "bot:safe": "tsx src/cli/run-bot.ts --mode=safe",
+    "bot:dry-run": "tsx src/cli/run-bot.ts --mode=dry-run",
+    "test:ai": "tsx src/cli/test-ai.ts",
+    "db:verify": "tsx src/cli/verify-db.ts"
+  },
+  "keywords": [
+    "linkedin",
+    "automation",
+    "gemini-ai",
+    "supabase",
+    "growth",
+    "networking",
+    "stealth-bot",
+    "human-delay"
+  ],
+  "author": "Ankit Raj Sharma",
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^2.28.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
+    "lucide-react": "^0.475.0",
+    "next": "^14.2.24",
+    "playwright": "^1.50.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.0.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}
