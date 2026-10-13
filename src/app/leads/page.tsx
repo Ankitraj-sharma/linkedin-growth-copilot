@@ -191,6 +191,16 @@ export default function LeadStudioPage() {
   const handleCopyAndOpen = (lead: LeadCard) => {
     navigator.clipboard.writeText(lead.note)
     setCopiedId(lead.id)
+
+    // Mark as invite_sent immediately
+    const updated = leads.map((l) => (l.id === lead.id ? { ...l, status: 'invite_sent' as const } : l))
+    setLeads(updated)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('linkpilot_leads', JSON.stringify(updated))
+    }
+
+    setSearchFeedback(`🚀 Profile opened for ${lead.name} (${lead.company})! Tailored note copied to clipboard. In the LinkedIn tab: 1. Click "Connect", 2. Click "Add a note", 3. Paste (Ctrl+V) & Send!`)
+
     setTimeout(() => setCopiedId(null), 3000)
     window.open(lead.profileUrl, '_blank')
   }
@@ -512,11 +522,21 @@ export default function LeadStudioPage() {
                 {/* Instant 1-Click Send for Anyone on Web */}
                 <button
                   onClick={() => handleCopyAndOpen(lead)}
-                  className="px-3.5 py-1.5 text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl transition-all flex items-center space-x-1.5 shadow-sm"
+                  className={`px-3.5 py-1.5 text-xs font-semibold rounded-xl transition-all flex items-center space-x-1.5 shadow-sm ${
+                    lead.status === 'invite_sent'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-linkedin-500 hover:bg-linkedin-600 text-white shadow-linkedin-500/20'
+                  }`}
                   title="Copies note to clipboard and opens LinkedIn profile"
                 >
-                  <Send className="w-3.5 h-3.5 text-sky-600" />
-                  <span>{copiedId === lead.id ? 'Copied! Opening Tab...' : 'Copy Note & Open Profile'}</span>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>
+                    {copiedId === lead.id
+                      ? 'Note Copied & Opening Tab...'
+                      : lead.status === 'invite_sent'
+                      ? '✓ Sent (Re-open Profile)'
+                      : '⚡ Send Connection Request'}
+                  </span>
                 </button>
 
                 {lead.status === 'discovered' && (

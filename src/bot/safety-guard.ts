@@ -11,13 +11,22 @@ export class SafetyGuard {
   /**
    * Validates if current time is within acceptable human working hours
    */
-  static isWithinWorkingHours(startHour = DEFAULT_SAFETY_CONFIG.workingHoursStart, endHour = DEFAULT_SAFETY_CONFIG.workingHoursEnd): SafetyCheckResult {
+  static isWithinWorkingHours(
+    startHour = DEFAULT_SAFETY_CONFIG.workingHoursStart,
+    endHour = DEFAULT_SAFETY_CONFIG.workingHoursEnd,
+    forceRun = false
+  ): SafetyCheckResult {
+    if (forceRun) {
+      console.log('⚡ [Safety Guard] Manual override active: Bypassing working hours check.')
+      return { allowed: true }
+    }
+
     const currentHour = new Date().getHours()
 
     if (currentHour < startHour || currentHour >= endHour) {
       return {
         allowed: false,
-        reason: `Outside working hours (${startHour}:00 - ${endHour}:00). Current hour is ${currentHour}:00. Pausing to mimic real sleep cycle.`,
+        reason: `Outside working hours (${startHour}:00 - ${endHour}:00). Current hour is ${currentHour}:00. Pausing to mimic real sleep cycle. (Use forceRun / Bypass to override)`,
       }
     }
 
