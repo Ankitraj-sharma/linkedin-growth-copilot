@@ -54,22 +54,48 @@ What is one architectural rule you never compromise on?
 
 #SoftwareEngineering #Architecture #Coding #CareerGrowth #WebDev`)
 
-  const handleGenerate = async () => {
+  const [postTitle, setPostTitle] = useState('Key Architectural Insights')
+  const [hookVariations, setHookVariations] = useState<string[]>([])
+  const [hashtags, setHashtags] = useState<string[]>(['#SoftwareEngineering', '#Architecture', '#Coding'])
+  const [readTime, setReadTime] = useState<number>(45)
+
+  const handleGenerate = async (overrideFramework?: any, overrideTone?: any) => {
     setIsGenerating(true)
+    const targetFramework = overrideFramework || framework
+    const targetTone = overrideTone || tone
+
     try {
       const res = await fetch('/api/generate-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, framework, tone, apiKey }),
+        body: JSON.stringify({
+          topic,
+          framework: targetFramework,
+          tone: targetTone,
+          apiKey,
+        }),
       })
       const data = await res.json()
       if (data.content) {
         setPostContent(data.content)
+        if (data.title) setPostTitle(data.title)
+        if (data.hookVariations) setHookVariations(data.hookVariations)
+        if (data.suggestedHashtags) setHashtags(data.suggestedHashtags)
+        if (data.estimatedReadTimeSeconds) setReadTime(data.estimatedReadTimeSeconds)
       }
     } catch (e) {
       console.error(e)
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleSwapHook = (newHook: string) => {
+    // Replace opening lines with chosen hook
+    const paragraphs = postContent.split('\n\n')
+    if (paragraphs.length > 1) {
+      paragraphs[0] = newHook
+      setPostContent(paragraphs.join('\n\n'))
     }
   }
 
@@ -182,9 +208,30 @@ What is one architectural rule you never compromise on?
                 rows={3}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="E.g. System design lessons from handling high traffic, or How junior devs should prepare for interviews..."
+                placeholder="E.g. Why AI can't reduce engineers jobs, or System design lessons from handling high traffic..."
                 className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all leading-relaxed"
               />
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                <span className="text-[10px] text-slate-400 font-semibold">Try prompt:</span>
+                {[
+                  "Why AI can't reduce engineers jobs",
+                  'System design vs learning new frameworks',
+                  'Why boring technology wins in production',
+                  'What separates junior vs senior engineers',
+                ].map((idea) => (
+                  <button
+                    key={idea}
+                    type="button"
+                    onClick={() => {
+                      setTopic(idea)
+                      handleGenerate(framework, tone)
+                    }}
+                    className="text-[10px] bg-slate-100 hover:bg-sky-50 hover:text-sky-700 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200 transition-colors"
+                  >
+                    {idea}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -277,6 +324,34 @@ What is one architectural rule you never compromise on?
               <button onClick={() => setPublishMessage(null)} className="text-slate-400 hover:text-slate-600 text-[11px]">
                 Dismiss
               </button>
+            </div>
+          )}
+
+          {/* Hook Variations Quick-Switcher */}
+          {hookVariations.length > 0 && (
+            <div className="p-3.5 bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-200/80 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-sky-950 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Alternate Scroll-Stopping Hooks:</span>
+                </span>
+                <span className="text-[10px] text-sky-600 font-semibold">Click to swap opening</span>
+              </div>
+              <div className="space-y-1.5">
+                {hookVariations.map((hook, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSwapHook(hook)}
+                    className="w-full text-left p-2 bg-white/90 hover:bg-white border border-sky-200 rounded-xl text-[11px] text-slate-700 hover:text-sky-900 transition-all shadow-2xs hover:shadow-xs flex items-center justify-between group"
+                  >
+                    <span className="line-clamp-2">"{hook}"</span>
+                    <span className="text-[10px] text-sky-600 opacity-0 group-hover:opacity-100 font-bold ml-2 whitespace-nowrap">
+                      Use Hook ↵
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
