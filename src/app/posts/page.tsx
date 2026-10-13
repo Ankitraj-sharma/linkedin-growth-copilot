@@ -73,10 +73,46 @@ What is one architectural rule you never compromise on?
     }
   }
 
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [publishMessage, setPublishMessage] = useState<string | null>(null)
+
   const handleCopy = () => {
     navigator.clipboard.writeText(postContent)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handlePublishPost = async () => {
+    setIsPublishing(true)
+    setPublishMessage('Publishing post to your LinkedIn profile...')
+
+    try {
+      const res = await fetch('/api/publish-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: postContent }),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        if (data.mode === 'intent' && data.shareUrl) {
+          window.open(data.shareUrl, '_blank')
+          setPublishMessage('✅ Opened LinkedIn with your post pre-filled! Click "Post" to submit.')
+        } else {
+          setPublishMessage('🎉 Post successfully published live to your LinkedIn feed!')
+        }
+      } else {
+        const fallbackUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(postContent)}`
+        window.open(fallbackUrl, '_blank')
+        setPublishMessage('✅ Opened LinkedIn with your post ready to publish!')
+      }
+    } catch (e: any) {
+      const fallbackUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(postContent)}`
+      window.open(fallbackUrl, '_blank')
+      setPublishMessage('✅ Opened LinkedIn post window!')
+    } finally {
+      setIsPublishing(false)
+    }
   }
 
   return (
@@ -211,20 +247,38 @@ What is one architectural rule you never compromise on?
 
         {/* Right Column: LinkedIn Post Mockup Preview */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               LinkedIn Feed Mockup Preview
             </span>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleCopy}
                 className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied to Clipboard!' : 'Copy Post'}</span>
+                <span>{copied ? 'Copied!' : 'Copy'}</span>
+              </button>
+
+              <button
+                onClick={handlePublishPost}
+                disabled={isPublishing || !postContent.trim()}
+                className="px-3.5 py-1.5 bg-linkedin-500 hover:bg-linkedin-600 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm shadow-linkedin-500/20 transition-all disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{isPublishing ? 'Publishing...' : '🚀 Publish to LinkedIn'}</span>
               </button>
             </div>
           </div>
+
+          {publishMessage && (
+            <div className="p-3 bg-sky-50 border border-sky-200 rounded-xl text-xs font-medium text-sky-800 flex items-center justify-between">
+              <span>{publishMessage}</span>
+              <button onClick={() => setPublishMessage(null)} className="text-slate-400 hover:text-slate-600 text-[11px]">
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {/* Realistic LinkedIn Feed Card */}
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 sm:p-6 space-y-4">

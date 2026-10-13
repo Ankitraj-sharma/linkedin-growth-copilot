@@ -4,7 +4,7 @@ import { generateConnectionNote, generateFollowUpMessage } from '@/ai/outreach-p
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { lead, user, goal } = body
+    const { lead, user, goal, apiKey } = body
 
     const defaultUser = user || {
       fullName: 'Ankit Raj Sharma',
@@ -13,8 +13,8 @@ export async function POST(request: Request) {
       targetRole: 'Senior Full Stack Engineer / SDE-2',
     }
 
-    const note = await generateConnectionNote(lead, defaultUser, goal || 'referral')
-    const followup = await generateFollowUpMessage(lead, defaultUser, goal || 'referral')
+    const note = await generateConnectionNote(lead, defaultUser, goal || 'referral', apiKey)
+    const followup = await generateFollowUpMessage(lead, defaultUser, goal || 'referral', apiKey)
 
     return NextResponse.json({ success: true, note, followup })
   } catch (err: any) {

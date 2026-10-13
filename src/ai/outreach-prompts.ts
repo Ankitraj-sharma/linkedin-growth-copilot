@@ -11,33 +11,38 @@ export interface ProfileContext {
 export interface UserContext {
   fullName: string
   currentRole: string
-  skills: string[]
+  skills?: string[] | string
   experienceYears?: number
   targetRole?: string
   portfolioOrGithubUrl?: string
+  goal?: 'networking' | 'referral' | 'recommendation' | 'mentorship'
 }
 
 /**
  * Generates an ultra-professional, natural LinkedIn connection request note.
- * STRICT REQUIREMENT: Max 300 characters (LinkedIn limitation).
+ * STRICT REQUIREMENT: Max 290 characters (LinkedIn 300-char limit).
  */
 export async function generateConnectionNote(
   lead: ProfileContext,
   user: UserContext,
-  goal: 'networking' | 'referral' | 'recommendation' | 'mentorship' = 'networking'
+  goal: 'networking' | 'referral' | 'recommendation' | 'mentorship' = 'referral',
+  apiKey?: string
 ): Promise<string> {
   const firstName = lead.fullName.split(' ')[0]
+  const skillsList = Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || 'modern fullstack tech')
+  const targetRole = user.targetRole || user.currentRole
 
-  const prompt = `
+  if (apiKey || process.env.GEMINI_API_KEY) {
+    const prompt = `
 You are an executive career advisor and networking expert.
 Write a concise, natural, and polite LinkedIn connection note.
 
 CRITICAL RULES:
-1. MAXIMUM 290 characters TOTAL (LinkedIn has a strict 300-char limit).
-2. DO NOT sound like a generic bot or salesperson (No "I was fascinated by your profile", "Hope this finds you well").
-3. Address them professionally by their first name: "${firstName}".
-4. State a clear, genuine reason for connecting based on the Goal: "${goal}".
-5. Match tone to a high-caliber professional: humble, sharp, and respectful of their time.
+1. STRICT MAXIMUM: 280 characters total (LinkedIn has a hard 300-char limit).
+2. DO NOT sound like a robot or salesperson (No "I was fascinated by your profile", "Hope this finds you well").
+3. Address them by their first name: "${firstName}".
+4. Mention their role at ${lead.company} and align with sender's background in "${targetRole}".
+5. Match tone to a top-tier engineer/professional: humble, sharp, and respectful of their time.
 
 Recipient Profile:
 - Name: ${lead.fullName}
@@ -46,39 +51,32 @@ Recipient Profile:
 
 Sender Profile:
 - Name: ${user.fullName}
-- Current Role / Background: ${user.currentRole}
-- Core Skills: ${user.skills.join(', ')}
-${user.targetRole ? `- Target Role: ${user.targetRole}` : ''}
+- Current/Target Role: ${targetRole}
+- Core Skills: ${skillsList}
 
-Goal:
-${
-  goal === 'referral'
-    ? 'Connect with an engineering lead/manager at their company to learn about open roles and explore referral opportunities.'
-    : goal === 'recommendation'
-    ? 'Connect with a respected senior professional to seek insights, guidance, and future professional endorsements.'
-    : goal === 'mentorship'
-    ? 'Learn from their leadership trajectory in the industry.'
-    : 'Expand mutual engineering network with peers doing impactful work.'
-}
+Goal: ${goal.toUpperCase()}
 
-OUTPUT: Return ONLY the exact message text (under 290 characters). No quotes, no markdown labels.
+OUTPUT: Return ONLY the exact message text (under 280 characters). No quotes, no markdown labels.
 `
 
-  try {
-    const note = await generateWithGemini(prompt, {
-      temperature: 0.65,
-      maxOutputTokens: 120,
-    })
+    try {
+      const note = await generateWithGemini(prompt, {
+        temperature: 0.7,
+        maxOutputTokens: 120,
+        apiKey,
+      })
 
-    // Double-check 300 char constraint
-    if (note.length > 295) {
-      return note.slice(0, 292) + '...'
+      if (note && note.trim().length > 10) {
+        const clean = note.trim().replace(/^["']|["']$/g, '')
+        return clean.length > 290 ? clean.slice(0, 287) + '...' : clean
+      }
+    } catch (error) {
+      console.warn('⚠️ [AI Note] Gemini call failed, using smart dynamic note generator.')
     }
-    return note
-  } catch (error) {
-    // High-quality fallback template if API key is not yet set
-    return getFallbackConnectionNote(lead, user, goal)
   }
+
+  // Smart Dynamic Contextual Generator (No API key needed)
+  return getAdaptiveConnectionNote(lead, user, goal)
 }
 
 /**
@@ -87,116 +85,110 @@ OUTPUT: Return ONLY the exact message text (under 290 characters). No quotes, no
 export async function generateFollowUpMessage(
   lead: ProfileContext,
   user: UserContext,
-  goal: 'networking' | 'referral' | 'recommendation' | 'mentorship' = 'referral'
+  goal: 'networking' | 'referral' | 'recommendation' | 'mentorship' = 'referral',
+  apiKey?: string
 ): Promise<string> {
   const firstName = lead.fullName.split(' ')[0]
+  const targetRole = user.targetRole || user.currentRole
+  const skillsList = Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || 'scalable web technologies')
 
-  const prompt = `
+  if (apiKey || process.env.GEMINI_API_KEY) {
+    const prompt = `
 You are an elite career strategist.
-Write a follow-up LinkedIn direct message to a newly connected senior professional/peer.
+Write a high-converting follow-up LinkedIn direct message to a newly connected senior professional/manager.
 
 Context:
 - Recipient: ${lead.fullName} (${lead.headline} at ${lead.company})
-- Sender: ${user.fullName} (${user.currentRole})
-- Core Strengths: ${user.skills.join(', ')}
+- Sender: ${user.fullName} (${targetRole})
+- Core Strengths: ${skillsList}
 - Goal: ${goal.toUpperCase()}
 
 Instructions:
-1. Thank ${firstName} warmly for connecting.
-2. If goal is "referral":
-   - Briefly state admiration for the engineering culture at ${lead.company}.
-   - In 1-2 lines, highlight sender's core competence without bragging.
-   - Humbly ask if they would be open to a quick pointer or referral for relevant open positions.
-3. If goal is "recommendation" or "mentorship":
-   - Reference their expertise in ${lead.headline}.
-   - Ask for a brief piece of advice or whether they would be open to reviewing a recent project/case-study for feedback.
-4. Keep the message under 150 words.
-5. Provide a clear, low-pressure closing (e.g., "Either way, appreciate your time and wishing you a great week ahead!").
+1. Thank ${firstName} warmly for accepting the connection.
+2. Admire their engineering work or team culture at ${lead.company}.
+3. State sender's background in ${targetRole} and value-add in 1 crisp sentence.
+4. If goal is "referral": Ask politely if they would be open to a quick pointer or referral for open roles.
+5. If goal is "recommendation" or "mentorship": Ask for a brief 5-min piece of advice on career trajectory or feedback.
+6. Low-pressure closing ("No worries if you are swamped—wishing you a great week ahead!").
+7. Length: Under 120 words.
 
 OUTPUT: Return ONLY the ready-to-send message text. No extra explanations.
 `
 
-  try {
-    return await generateWithGemini(prompt, {
-      temperature: 0.7,
-      maxOutputTokens: 400,
-    })
-  } catch (error) {
-    return getFallbackFollowUpMessage(lead, user, goal)
+    try {
+      const reply = await generateWithGemini(prompt, {
+        temperature: 0.7,
+        maxOutputTokens: 350,
+        apiKey,
+      })
+      if (reply && reply.trim().length > 20) {
+        return reply.trim()
+      }
+    } catch (e) {
+      // Fallback
+    }
   }
+
+  return getAdaptiveFollowUpMessage(lead, user, goal)
 }
 
 /**
- * Analyzes an incoming message to detect intent and suggest the best response
+ * Adaptive Psychological Note Generator (Strictly under 290 characters)
  */
-export async function analyzeIncomingMessage(messageText: string): Promise<{
-  intent: 'positive' | 'neutral' | 'negative' | 'referral_offered' | 'more_info_needed'
-  suggestedAction: string
-}> {
-  const prompt = `
-Analyze the following reply received on LinkedIn:
-"${messageText}"
-
-Classify into one of these intents:
-- referral_offered: They agreed to refer, asked for resume/email/job ID.
-- positive: Warm, open to chat or gave encouraging response.
-- more_info_needed: Asked questions about experience, tech stack, or portfolio.
-- neutral: Brief acknowledgement (e.g. "Thanks", "Sure").
-- negative: Declined, not hiring, or asked not to message.
-
-Respond with JSON in this format:
-{
-  "intent": "positive",
-  "suggestedAction": "Send resume link and thank them for the guidance."
-}
-`
-
-  try {
-    const raw = await generateWithGemini(prompt, {
-      temperature: 0.2,
-      maxOutputTokens: 200,
-    })
-    const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0])
-    }
-  } catch (e) {
-    // Fallback classification
-  }
-
-  return {
-    intent: 'neutral',
-    suggestedAction: 'Review message manually and craft a polite acknowledgement.',
-  }
-}
-
-// Fallback templates when offline or during initial configuration
-function getFallbackConnectionNote(
+function getAdaptiveConnectionNote(
   lead: ProfileContext,
   user: UserContext,
   goal: string
 ): string {
   const firstName = lead.fullName.split(' ')[0]
+  const targetRole = user.targetRole || user.currentRole || 'Software Engineer'
+  const company = lead.company || 'your team'
+
   if (goal === 'referral') {
-    return `Hi ${firstName}, saw your engineering leadership at ${lead.company}. I'm a ${user.currentRole} focusing on ${user.skills[0] || 'scalable systems'}. Would love to connect and keep in touch regarding future opportunities!`
+    return `Hi ${firstName}, really admire the engineering standard at ${company}. As a ${targetRole}, I am exploring opportunities to contribute to high-impact products. Would love to connect and keep in touch regarding open roles!`
   }
-  return `Hi ${firstName}, impressed by your work at ${lead.company}. I'm also building in ${user.skills[0] || 'software engineering'} and would love to connect to follow your insights.`
+
+  if (goal === 'recommendation' || goal === 'mentorship') {
+    return `Hi ${firstName}, came across your leadership in ${lead.headline?.slice(0, 40) || company}. As a ${targetRole}, I would love to connect and learn from your technical trajectory in the industry!`
+  }
+
+  return `Hi ${firstName}, noticed your impactful work at ${company}. I am also building in the ${targetRole} space and would love to connect to exchange insights and follow your engineering updates.`
 }
 
-function getFallbackFollowUpMessage(
+/**
+ * Adaptive Follow-up Message
+ */
+function getAdaptiveFollowUpMessage(
   lead: ProfileContext,
   user: UserContext,
   goal: string
 ): string {
   const firstName = lead.fullName.split(' ')[0]
-  return `Hi ${firstName}, thanks for connecting!
+  const targetRole = user.targetRole || user.currentRole || 'Software Engineer'
+  const company = lead.company || 'your team'
+  const skills = Array.isArray(user.skills) ? user.skills.slice(0, 3).join(', ') : (user.skills || 'modern scalable systems')
 
-I've been following the engineering initiatives at ${lead.company} and really admire the technical bar. 
+  if (goal === 'referral') {
+    return `Hi ${firstName}, thanks for connecting!
 
-As a ${user.currentRole} specializing in ${user.skills.slice(0, 3).join(', ')}, I'm exploring new impactful opportunities. If your team is looking for passionate builders or if you'd be open to referring me for open roles, I'd love to share my portfolio.
+I've been closely following the product engineering initiatives at ${company} and really respect the technical bar.
 
-No worries if you're swamped—appreciate your time and wishing you a great week ahead!
+I'm an active ${targetRole} with a strong focus on ${skills}. I'm currently looking for impactful engineering opportunities. If your team or an adjacent team has open positions and you'd be open to reviewing my work or offering a referral, I'd be truly grateful to share my resume and projects.
+
+Either way, appreciate your time and wishing you a fantastic week ahead!
 
 Best regards,
+${user.fullName}`
+  }
+
+  return `Hi ${firstName}, thank you for connecting!
+
+I've been inspired by your work at ${company} in ${lead.headline?.slice(0, 50) || 'tech leadership'}.
+
+As a ${targetRole} passionate about ${skills}, I'm always looking to refine my engineering standards. If you ever have a few minutes for a quick tip or advice on scaling as a builder, I'd love to learn from your experience.
+
+Wishing you great success with your current milestones!
+
+Best,
 ${user.fullName}`
 }
