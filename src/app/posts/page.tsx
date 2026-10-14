@@ -59,7 +59,10 @@ What is one architectural rule you never compromise on?
   const [hashtags, setHashtags] = useState<string[]>(['#SoftwareEngineering', '#Architecture', '#Coding'])
   const [readTime, setReadTime] = useState<number>(45)
 
-  const handleGenerate = async (overrideFramework?: any, overrideTone?: any) => {
+  const handleGenerate = async (overrideTopic?: string, overrideFramework?: any, overrideTone?: any) => {
+    const currentTopic = overrideTopic !== undefined ? overrideTopic : topic
+    if (!currentTopic.trim()) return
+
     setIsGenerating(true)
     const targetFramework = overrideFramework || framework
     const targetTone = overrideTone || tone
@@ -69,7 +72,7 @@ What is one architectural rule you never compromise on?
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic,
+          topic: currentTopic,
           framework: targetFramework,
           tone: targetTone,
           apiKey,
@@ -87,6 +90,20 @@ What is one architectural rule you never compromise on?
       console.error(e)
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleSelectFramework = (f: typeof framework) => {
+    setFramework(f)
+    if (topic.trim() && postContent) {
+      handleGenerate(topic, f, tone)
+    }
+  }
+
+  const handleSelectTone = (t: typeof tone) => {
+    setTone(t)
+    if (topic.trim() && postContent) {
+      handleGenerate(topic, framework, t)
     }
   }
 
@@ -201,56 +218,55 @@ What is one architectural rule you never compromise on?
         <div className="lg:col-span-5 space-y-5">
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                What do you want to talk about?
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  What do you want to talk about?
+                </label>
+                {topic && (
+                  <button
+                    type="button"
+                    onClick={() => setTopic('')}
+                    className="text-[11px] text-slate-400 hover:text-rose-600 font-medium transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <textarea
-                rows={3}
+                rows={4}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="E.g. Why AI can't reduce engineers jobs, or System design lessons from handling high traffic..."
-                className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all leading-relaxed"
+                placeholder="Type ANY topic, experience, rough thought, or story (in English, Hindi, or Hinglish)...&#10;&#10;Examples:&#10;• 'Maine ek startup shuru kiya tha jo fail ho gya aur 5 lessons seekhe'&#10;• 'How to negotiate salary when you have competing offers'&#10;• 'Why 90% of team meetings should be an async update'&#10;• 'Real estate investment rules for first-time buyers in their 20s'"
+                className="w-full p-3.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all leading-relaxed"
               />
-              <div className="flex flex-wrap gap-1.5 pt-2">
-                <span className="text-[10px] text-slate-400 font-semibold">Try prompt:</span>
-                {[
-                  "Why AI can't reduce engineers jobs",
-                  'System design vs learning new frameworks',
-                  'Why boring technology wins in production',
-                  'What separates junior vs senior engineers',
-                ].map((idea) => (
-                  <button
-                    key={idea}
-                    type="button"
-                    onClick={() => {
-                      setTopic(idea)
-                      handleGenerate(framework, tone)
-                    }}
-                    className="text-[10px] bg-slate-100 hover:bg-sky-50 hover:text-sky-700 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200 transition-colors"
-                  >
-                    {idea}
-                  </button>
-                ))}
+              <div className="mt-2.5 flex items-start gap-2 p-2.5 bg-sky-50/70 border border-sky-100 rounded-xl text-[11px] text-sky-900 leading-snug">
+                <Sparkles className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold">Universal AI Engine:</span> No restricted prompts! You can write about ANY topic, personal journey, business win/loss, or technical concept. Gemini crafts it into a ready-to-publish, first-person LinkedIn post.
+                </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                High-Reach Framework
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  High-Reach Framework
+                </label>
+                <span className="text-[10px] text-slate-400">Click to instantly adapt style</span>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'hook_value_cta', label: 'Hook + Value + CTA' },
                   { id: 'storytelling', label: 'Storytelling Lesson' },
-                  { id: 'industry_breakdown', label: 'Tech Breakdown' },
+                  { id: 'industry_breakdown', label: 'In-Depth Breakdown' },
                   { id: 'hot_take', label: 'Contrarian Hot Take' },
                 ].map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => setFramework(item.id as any)}
+                    onClick={() => handleSelectFramework(item.id as any)}
                     className={`p-2.5 text-xs font-semibold rounded-xl border text-left transition-all ${
                       framework === item.id
-                        ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-sm'
+                        ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-sm ring-1 ring-sky-500/20'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
@@ -261,17 +277,20 @@ What is one architectural rule you never compromise on?
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Voice Tone
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Voice Tone
+                </label>
+                <span className="text-[10px] text-slate-400">Instant tone adapt</span>
+              </div>
               <div className="flex gap-2">
                 {(['conversational', 'authoritative', 'inspiring', 'contrarian'] as const).map((t) => (
                   <button
                     key={t}
-                    onClick={() => setTone(t)}
+                    onClick={() => handleSelectTone(t)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg capitalize border transition-all ${
                       tone === t
-                        ? 'bg-slate-900 text-white border-slate-900'
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
@@ -282,7 +301,7 @@ What is one architectural rule you never compromise on?
             </div>
 
             <button
-              onClick={handleGenerate}
+              onClick={() => handleGenerate()}
               disabled={isGenerating || !topic.trim()}
               className="w-full py-3 bg-gradient-to-r from-linkedin-600 to-sky-500 hover:from-linkedin-700 hover:to-sky-600 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-500/20 flex items-center justify-center space-x-2 transition-all disabled:opacity-50"
             >
