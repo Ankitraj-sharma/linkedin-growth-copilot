@@ -16,6 +16,7 @@ node_modules/
 user_data_dir/
 *.cookie
 storage_state.json
+.scheduled_queue.json
 
 # Build outputs
 dist/

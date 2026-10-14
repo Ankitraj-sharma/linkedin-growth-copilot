@@ -1,0 +1,38 @@
+name: LinkPilot AI - Daily Autonomous Post
+
+on:
+  schedule:
+    # Runs at 04:00 UTC (9:30 AM IST) every day
+    - cron: '0 4 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab anytime
+
+jobs:
+  daily-post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Autonomous Daily Post
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LINKEDIN_LI_AT_COOKIE: ${{ secrets.LINKEDIN_LI_AT_COOKIE }}
+          NEXT_PUBLIC_SUPABASE_URL: "https://btuxqfkomiqbwzlgyfit.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXhxZmtvbWlxYnd6bGd5Zml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNDY1OTgsImV4cCI6MjEwNTcyMjU5OH0.CBu7W2KCUiLf0NDcTli51zvAFiKZKkWabmQDxG4jZAc"
+          SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ0dXhxZmtvbWlxYnd6bGd5Zml0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNDY1OTgsImV4cCI6MjEwNTcyMjU5OH0.CBu7W2KCUiLf0NDcTli51zvAFiKZKkWabmQDxG4jZAc"
+          GEMINI_MODEL: "gemini-3.5-flash-lite"
+        run: npm run post:daily

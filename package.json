@@ -12,7 +12,8 @@
     "bot:dry-run": "tsx src/cli/run-bot.ts --mode=dry-run",
     "test:ai": "tsx src/cli/test-ai.ts",
     "db:verify": "tsx src/cli/verify-db.ts",
-    "login:chrome": "tsx src/cli/login-chrome.ts"
+    "login:chrome": "tsx src/cli/login-chrome.ts",
+    "post:daily": "tsx src/cli/daily-post-runner.ts"
   },
   "keywords": [
     "linkedin",

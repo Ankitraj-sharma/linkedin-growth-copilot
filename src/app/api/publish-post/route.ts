@@ -6,7 +6,7 @@ import { getSupabaseClient } from '@/supabase/supabase-client'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { content } = body
+    const { content, imageUrl } = body
 
     if (!content || !content.trim()) {
       return NextResponse.json({ success: false, error: 'Post content cannot be empty' }, { status: 400 })
