@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const envApiKey = process.env.GEMINI_API_KEY || ''
-const defaultModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+const defaultModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
 
 export interface GenerateTextOptions {
   model?: string
@@ -12,6 +12,8 @@ export interface GenerateTextOptions {
   systemInstruction?: string
   maxOutputTokens?: number
   apiKey?: string
+  responseMimeType?: string
+  responseSchema?: any
 }
 
 /**
@@ -30,20 +32,28 @@ export async function generateWithGemini(
 
   try {
     const client = new GoogleGenAI({ apiKey: activeKey })
-    const candidateModels = [modelName, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
-    const uniqueModels = Array.from(new Set(candidateModels))
+    const candidateModels = [modelName, 'gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-2.5-pro']
+    const uniqueModels = Array.from(new Set(candidateModels.filter(Boolean)))
 
     let lastError: any = null
     for (const m of uniqueModels) {
       try {
+        const config: any = {
+          temperature: options?.temperature ?? 0.75,
+          systemInstruction: options?.systemInstruction,
+          maxOutputTokens: options?.maxOutputTokens ?? 1800,
+        }
+        if (options?.responseMimeType) {
+          config.responseMimeType = options.responseMimeType
+        }
+        if (options?.responseSchema) {
+          config.responseSchema = options.responseSchema
+        }
+
         const response = await client.models.generateContent({
           model: m,
           contents: prompt,
-          config: {
-            temperature: options?.temperature ?? 0.75,
-            systemInstruction: options?.systemInstruction,
-            maxOutputTokens: options?.maxOutputTokens ?? 1500,
-          },
+          config,
         })
 
         const text = response.text || ''

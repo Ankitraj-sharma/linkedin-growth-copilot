@@ -76,22 +76,52 @@ RESPOND STRICTLY IN VALID JSON:
   "estimatedReadTimeSeconds": 45
 }
 `
+      const responseSchema = {
+        type: 'OBJECT',
+        properties: {
+          title: { type: 'STRING' },
+          content: { type: 'STRING' },
+          hookVariations: { type: 'ARRAY', items: { type: 'STRING' } },
+          suggestedHashtags: { type: 'ARRAY', items: { type: 'STRING' } },
+          estimatedReadTimeSeconds: { type: 'INTEGER' },
+        },
+        required: ['title', 'content', 'hookVariations', 'suggestedHashtags'],
+      }
+
       const raw = await generateWithGemini(prompt, {
         temperature: 0.8,
-        maxOutputTokens: 1500,
-        apiKey: request.apiKey,
+        maxOutputTokens: 1800,
+        apiKey: request.apiKey || process.env.GEMINI_API_KEY,
+        responseMimeType: 'application/json',
+        responseSchema,
       })
 
-      const jsonMatch = raw.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        return {
-          title: parsed.title || request.topic,
-          content: parsed.content || '',
-          framework: framework,
-          hookVariations: parsed.hookVariations || [],
-          suggestedHashtags: parsed.suggestedHashtags || ['#Career', '#Growth'],
-          estimatedReadTimeSeconds: parsed.estimatedReadTimeSeconds || 45,
+      try {
+        const cleaned = raw.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim()
+        const parsed = JSON.parse(cleaned)
+        if (parsed.content) {
+          return {
+            title: parsed.title || request.topic,
+            content: parsed.content,
+            framework: framework,
+            hookVariations: parsed.hookVariations || [],
+            suggestedHashtags: parsed.suggestedHashtags || ['#Career', '#Growth'],
+            estimatedReadTimeSeconds: parsed.estimatedReadTimeSeconds || 45,
+          }
+        }
+      } catch (parseErr: any) {
+        // If JSON parse fails, check regex extraction
+        const jsonMatch = raw.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0])
+          return {
+            title: parsed.title || request.topic,
+            content: parsed.content || raw,
+            framework: framework,
+            hookVariations: parsed.hookVariations || [],
+            suggestedHashtags: parsed.suggestedHashtags || ['#Career', '#Growth'],
+            estimatedReadTimeSeconds: parsed.estimatedReadTimeSeconds || 45,
+          }
         }
       }
     } catch (err: any) {
