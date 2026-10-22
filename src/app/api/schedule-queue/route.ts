@@ -68,11 +68,15 @@ export async function POST(request: Request) {
 
     // 3. Prepare/Pre-generate post and image for a single queue item
     if (action === 'prepare_item') {
-      if (!itemId) {
-        return NextResponse.json({ success: false, error: 'Item ID is required' }, { status: 400 })
+      const { itemId, item, apiKey } = body
+      if (!itemId && (!item || !item.id)) {
+        return NextResponse.json({ success: false, error: 'Item ID or Item object is required' }, { status: 400 })
       }
       const queue = await getScheduledQueue()
-      const targetItem = queue.find((x) => x.id === itemId)
+      let targetItem = queue.find((x) => x.id === (itemId || item?.id))
+      if (!targetItem && item) {
+        targetItem = item
+      }
       if (!targetItem) {
         return NextResponse.json({ success: false, error: 'Item not found in queue' }, { status: 404 })
       }
