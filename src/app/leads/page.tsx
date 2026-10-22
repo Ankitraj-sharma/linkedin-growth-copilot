@@ -35,6 +35,8 @@ export default function LeadStudioPage() {
   const [isGenerating, setIsGenerating] = useState<string | null>(null)
   const [isSearchingLeads, setIsSearchingLeads] = useState(false)
   const [searchFeedback, setSearchFeedback] = useState<string | null>(null)
+  const [isAutoSending, setIsAutoSending] = useState(false)
+  const [autoSendIndex, setAutoSendIndex] = useState<number | null>(null)
 
   // Multi-User Profile State
   const [userProfile, setUserProfile] = useState({
@@ -64,6 +66,16 @@ export default function LeadStudioPage() {
       if (savedPersona) {
         try {
           setUserProfile(JSON.parse(savedPersona))
+        } catch {}
+      }
+
+      const savedLeads = localStorage.getItem('linkpilot_leads')
+      if (savedLeads) {
+        try {
+          const parsed = JSON.parse(savedLeads)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setLeads(parsed)
+          }
         } catch {}
       }
     }
@@ -146,8 +158,88 @@ export default function LeadStudioPage() {
   }
 
   const handleApprove = (id: string) => {
-    setLeads((prev) =>
-      prev.map((lead) => (lead.id === id ? { ...lead, status: 'approved' } : lead))
+    setLeads((prev) => {
+      const updated = prev.map((lead) => (lead.id === id ? { ...lead, status: 'approved' as const } : lead))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('linkpilot_leads', JSON.stringify(updated))
+      }
+      return updated
+    })
+  }
+
+  const handleApproveAll = () => {
+    setLeads((prev) => {
+      const updated = prev.map((lead) =>
+        lead.status === 'discovered' ? { ...lead, status: 'approved' as const } : lead
+      )
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('linkpilot_leads', JSON.stringify(updated))
+      }
+      return updated
+    })
+    setSearchFeedback(`✅ All discovered leads approved! Click "Send Connection Requests" to dispatch.`)
+  }
+
+  const handleSendAllApproved = async () => {
+    const approvedLeads = leads.filter((l) => l.status === 'approved')
+    if (approvedLeads.length === 0) return
+
+    setIsAutoSending(true)
+    setSearchFeedback(`🚀 Starting Auto-Connect sequence for ${approvedLeads.length} approved leads...`)
+
+    // Attempt background bot dispatch
+    try {
+      fetch('/api/trigger-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dryRun: false,
+          forceRun: true,
+          leads: approvedLeads.map((l) => ({
+            id: l.id,
+            full_name: l.name,
+            profile_url: l.profileUrl,
+            generated_note: l.note,
+            headline: l.headline,
+            company: l.company,
+          })),
+        }),
+      }).catch(() => {})
+    } catch {}
+
+    // Step-by-step browser sequence
+    for (let i = 0; i < approvedLeads.length; i++) {
+      const lead = approvedLeads[i]
+      setAutoSendIndex(i + 1)
+      setSearchFeedback(
+        `⚡ [${i + 1}/${approvedLeads.length}] Opening ${lead.name} (${lead.company})... Note copied to clipboard!`
+      )
+
+      try {
+        await navigator.clipboard.writeText(lead.note)
+      } catch {}
+
+      window.open(lead.profileUrl, '_blank')
+
+      setLeads((prev) => {
+        const updated = prev.map((l) =>
+          l.id === lead.id ? { ...l, status: 'invite_sent' as const } : l
+        )
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('linkpilot_leads', JSON.stringify(updated))
+        }
+        return updated
+      })
+
+      if (i < approvedLeads.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+      }
+    }
+
+    setIsAutoSending(false)
+    setAutoSendIndex(null)
+    setSearchFeedback(
+      `🎉 Connection requests initiated for all ${approvedLeads.length} approved leads! Notes were pre-copied and profiles opened.`
     )
   }
 
@@ -380,6 +472,39 @@ export default function LeadStudioPage() {
         </div>
       )}
 
+      {/* Auto-Connect Dispatcher Banner */}
+      {leads.filter((l) => l.status === 'approved').length > 0 && (
+        <div className="p-4 bg-gradient-to-r from-emerald-500 via-teal-600 to-sky-600 rounded-2xl text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-lg shrink-0">
+              {leads.filter((l) => l.status === 'approved').length}
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                <span>Approved Leads Ready for Connection</span>
+              </h4>
+              <p className="text-xs text-emerald-100">
+                Personalized referral notes (&lt;300 chars) are prepared and ready for each decision maker.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSendAllApproved}
+            disabled={isAutoSending}
+            className="px-5 py-2.5 bg-white text-emerald-900 hover:bg-emerald-50 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 shadow-sm transition-all disabled:opacity-50 shrink-0"
+          >
+            <Send className={`w-3.5 h-3.5 text-emerald-600 ${isAutoSending ? 'animate-bounce' : ''}`} />
+            <span>
+              {isAutoSending
+                ? `Sending (${autoSendIndex}/${leads.filter((l) => l.status === 'approved').length})...`
+                : `🚀 Send Invites to All Approved (${leads.filter((l) => l.status === 'approved').length})`}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Filters & Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="flex items-center space-x-2 w-full sm:w-auto overflow-x-auto">
@@ -396,6 +521,16 @@ export default function LeadStudioPage() {
               {filter.replace('_', ' ')}
             </button>
           ))}
+
+          {leads.some((l) => l.status === 'discovered') && (
+            <button
+              onClick={handleApproveAll}
+              className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center space-x-1 transition-all"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Approve All Discovered</span>
+            </button>
+          )}
         </div>
 
         <div className="relative w-full sm:w-72">

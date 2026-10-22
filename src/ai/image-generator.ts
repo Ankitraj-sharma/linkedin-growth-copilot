@@ -35,21 +35,24 @@ export async function generateTopicImage(
 
   try {
     const promptRefinerQuery = `
-You are a creative art director for high-growth tech executives and thought leaders on LinkedIn.
-Create a single, highly detailed, visually striking prompt for an AI image generator (like Flux / Midjourney).
-The visual MUST conceptually represent the core message of the post or topic below.
+You are a professional photography director and visual editor for top LinkedIn publications (like Forbes, Wired, Fast Company).
+Generate a concrete, literal, photorealistic photography prompt for an AI image generator (Flux) that directly matches the EXACT real-world topic below.
 
 TOPIC: "${cleanTopic}"
 ${postContent ? `POST SNIPPET: "${postContent.slice(0, 300)}..."` : ''}
-STYLE PREFERENCE: ${preferredStyle}
 
-RULES FOR IMAGE PROMPT:
-1. Focus on modern corporate aesthetics, cinematic lighting, conceptual realism, or sleek 3D architecture.
-2. NO text, typography, letters, or gibberish words inside the image.
-3. Evoke professional prestige, focus, ambition, problem-solving, or engineering craft.
-4. Keep the prompt under 45 words, comma-separated keywords and visual attributes.
-
-Respond ONLY with the image prompt text, no quotes, no conversational filler.
+CRITICAL RULES FOR ACCURATE TOPIC VISUALS:
+1. IDENTIFY THE PHYSICAL, REAL-WORLD SCENE:
+   - If the topic is about coding/software: A focused software engineer at a wooden desk with dual high-res monitors showing realistic clean code, warm desk lamp, coffee mug, photorealistic modern office.
+   - If the topic is about chai / street business / food / shop: An authentic Indian roadside tea stall, steaming brass kettle, cutting chai glasses on a rustic wooden counter, soft morning golden hour sunlight.
+   - If the topic is about salary negotiation / job offer / contract: A modern office desk with an open signed contract, fountain pen, laptop, clean daylight, executive boardroom in background.
+   - If the topic is about burnout / work-life balance: Running shoes resting next to an open laptop on a sunlit wooden table, indoor plants, peaceful morning atmosphere.
+   - If the topic is about real estate: Modern architectural blueprint spread on a table with house keys and a miniature house model, soft natural lighting.
+   - If the topic is about data science / AI / ML: A clean laptop screen visualizing clear data graphs, Python code notebooks, clean minimalist desk, bright natural daylight.
+   - If the topic is about startup failure / starting over: A founder writing ideas on a glass whiteboard with sticky notes, messy notebook, evening dusk city lights outside window.
+2. TRANSLATE HINDI/HINGLISH: Understand the exact physical cultural setting (e.g., 'chai ki dukan' -> Indian street tea stall; 'boss se ladai' -> corporate discussion room).
+3. STRICTLY NO ABSTRACT SURREALISM: DO NOT generate glowing neon cubes, floating sci-fi crystals, laser grids, or purple cyberpunk matrix effects. Make it look like a REAL, high-end photograph taken with a 35mm lens.
+4. Output ONLY the prompt string, under 45 words, no conversational quotes or filler.
 `
     const refined = await generateWithGemini(promptRefinerQuery, {
       temperature: 0.7,

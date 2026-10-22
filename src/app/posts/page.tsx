@@ -70,6 +70,21 @@ export default function PostStudioPage() {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('gemini_api_key')
       if (saved) setApiKey(saved)
+
+      const savedQueue = localStorage.getItem('linkpilot_scheduled_queue')
+      if (savedQueue) {
+        try {
+          const parsed = JSON.parse(savedQueue)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setQueue(parsed)
+            const todayStr = new Date().toISOString().split('T')[0]
+            const todayItem =
+              parsed.find((p: any) => p.scheduledDate === todayStr && p.status !== 'published') ||
+              parsed[0]
+            setTodaysPost(todayItem)
+          }
+        } catch {}
+      }
     }
     fetchQueue()
   }, [])
@@ -86,9 +101,12 @@ export default function PostStudioPage() {
     try {
       const res = await fetch('/api/schedule-queue')
       const data = await res.json()
-      if (data.success) {
-        setQueue(data.queue || [])
-        setTodaysPost(data.todaysPost || null)
+      if (data.success && Array.isArray(data.queue) && data.queue.length > 0) {
+        setQueue(data.queue)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('linkpilot_scheduled_queue', JSON.stringify(data.queue))
+        }
+        if (data.todaysPost) setTodaysPost(data.todaysPost)
       }
     } catch (e) {
       console.error(e)
@@ -264,9 +282,12 @@ What is one architectural rule you never compromise on?
         }),
       })
       const data = await res.json()
-      if (data.success) {
+      if (data.success && data.queue) {
+        setQueue(data.queue)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('linkpilot_scheduled_queue', JSON.stringify(data.queue))
+        }
         setBulkInput('')
-        fetchQueue()
       }
     } catch (e) {
       console.error(e)
@@ -291,8 +312,16 @@ What is one architectural rule you never compromise on?
         }),
       })
       const data = await res.json()
-      if (data.success) {
-        fetchQueue()
+      if (data.success && data.queue && data.queue.length > 0) {
+        setQueue(data.queue)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('linkpilot_scheduled_queue', JSON.stringify(data.queue))
+        }
+        const todayStr = new Date().toISOString().split('T')[0]
+        const todayItem =
+          data.queue.find((p: any) => p.scheduledDate === todayStr && p.status !== 'published') ||
+          data.queue[0]
+        setTodaysPost(todayItem)
       }
     } catch (e) {
       console.error(e)
@@ -302,14 +331,15 @@ What is one architectural rule you never compromise on?
   }
 
   const handleDeleteQueueItem = async (id: string) => {
+    const updated = queue.filter((x) => x.id !== id)
+    setQueue(updated)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('linkpilot_scheduled_queue', JSON.stringify(updated))
+    }
     try {
-      const res = await fetch(`/api/schedule-queue?id=${encodeURIComponent(id)}`, {
+      await fetch(`/api/schedule-queue?id=${encodeURIComponent(id)}`, {
         method: 'DELETE',
       })
-      const data = await res.json()
-      if (data.success) {
-        fetchQueue()
-      }
     } catch (e) {
       console.error(e)
     }
@@ -327,8 +357,15 @@ What is one architectural rule you never compromise on?
         }),
       })
       const data = await res.json()
-      if (data.success) {
-        fetchQueue()
+      if (data.success && data.item) {
+        const updated = queue.map((x) => (x.id === data.item.id ? data.item : x))
+        setQueue(updated)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('linkpilot_scheduled_queue', JSON.stringify(updated))
+        }
+        if (todaysPost?.id === data.item.id) {
+          setTodaysPost(data.item)
+        }
       }
     } catch (e) {
       console.error(e)

@@ -33,23 +33,35 @@ export async function POST(request: Request) {
     if (apiKey || process.env.GEMINI_API_KEY) {
       try {
         const prompt = `
-Generate 5 realistic, high-value LinkedIn professional profiles (Hiring Managers, Engineering Leads, or Technical Recruiters) who would be looking for or hiring a: "${effectiveTargetRole}".
+You are an expert LinkedIn talent scout and referral connector.
+A candidate is seeking an internal employee referral for their target role:
+- Candidate Name: "${userProfile.fullName}"
+- Current Role: "${userProfile.currentRole}"
+- Target Role Seeking: "${effectiveTargetRole}"
+- Goal: Referral for hiring at top companies (e.g. Microsoft, Google, Amazon, Atlassian, Uber, Swiggy, Zomato, Stripe, Razorpay)
+
+Generate 5 high-impact, realistic LinkedIn professional profiles of people who can directly give an internal referral for this target role:
+1. Engineering Manager / Director at a tier-1 company (direct hiring decision maker)
+2. Staff / Senior Engineer at a high-growth tech firm (peers who refer candidates)
+3. Tech Lead / Principal Architect (team builder)
+4. Senior Engineering Manager (division lead)
+5. Technical Recruiter / Talent Lead (direct role sourcer)
 
 Return ONLY a JSON array with exactly 5 objects:
 [
   {
     "name": "Full Name",
-    "headline": "Current Job Title | Key Focus",
-    "company": "Company Name",
-    "location": "Location (City, Country)",
-    "profileUrl": "https://linkedin.com/in/unique-slug"
+    "headline": "Engineering Manager at Microsoft | Azure Cloud Systems",
+    "company": "Microsoft",
+    "location": "Bengaluru, India",
+    "searchQuery": "Microsoft Engineering Manager"
   }
 ]
 `
         const raw = await generateWithGemini(prompt, {
           temperature: 0.7,
-          maxOutputTokens: 1000,
-          apiKey,
+          maxOutputTokens: 1200,
+          apiKey: apiKey || process.env.GEMINI_API_KEY,
         })
 
         const match = raw.match(/\[[\s\S]*\]/)
@@ -63,18 +75,22 @@ Return ONLY a JSON array with exactly 5 objects:
               fullName: p.name,
               headline: p.headline,
               company: p.company,
-              location: p.location,
+              location: p.location || 'India / Remote',
             }
             const note = await generateConnectionNote(leadContext, userProfile, effectiveGoal, apiKey)
             const followup = await generateFollowUpMessage(leadContext, userProfile, effectiveGoal, apiKey)
+
+            // Direct LinkedIn search URL so it instantly finds this exact person/role on LinkedIn
+            const searchKeyword = p.searchQuery || `${p.name} ${p.company}`
+            const profileUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchKeyword)}`
 
             leads.push({
               id: `dynamic-${Date.now()}-${i}`,
               name: p.name,
               headline: p.headline,
               company: p.company,
-              location: p.location,
-              profileUrl: p.profileUrl || `https://linkedin.com/in/${p.name.toLowerCase().replace(/\s+/g, '-')}`,
+              location: p.location || 'India / Remote',
+              profileUrl,
               status: 'discovered',
               note,
               followup,
